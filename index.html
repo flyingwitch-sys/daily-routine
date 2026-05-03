@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 하루 루틴</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+  .container { max-width: 520px; margin: 0 auto; padding: 20px; }
+  h1 { text-align: center; padding: 20px 0 8px; font-size: 1.5rem; }
+  .date { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 20px; }
+  .progress { background: #e0e0e0; border-radius: 10px; height: 12px; margin-bottom: 20px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, #4caf50, #66bb6a); border-radius: 10px; transition: width 0.3s; }
+  .progress-text { text-align: center; font-size: 0.85rem; color: #666; margin-top: -16px; margin-bottom: 16px; line-height: 12px; position: relative; font-weight: 600; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab { flex: 1; padding: 10px; text-align: center; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #888; }
+  .tab.active { background: #4caf50; color: #fff; border-color: #4caf50; }
+  .section-title { font-size: 0.85rem; font-weight: 600; color: #555; margin: 18px 0 8px; padding-left: 4px; display: flex; align-items: center; gap: 6px; }
+  .section-title .icon { font-size: 1rem; }
+  .add-form { display: flex; gap: 8px; margin-bottom: 8px; }
+  .add-form input[type="time"] { width: 90px; padding: 10px 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; }
+  .add-form input[type="text"] { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; }
+  .add-form button { padding: 10px 16px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; }
+  .item { display: flex; flex-direction: column; background: #fff; padding: 12px 14px; border-radius: 10px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .item.done { opacity: 0.5; }
+  .item.done .item-name { text-decoration: line-through; }
+  .item input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4caf50; cursor: pointer; flex-shrink: 0; }
+  .item-note { font-size: 0.8rem; color: #888; margin: 6px 0 0 30px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .note-input { border: none; border-bottom: 1px dashed #ccc; font-size: 0.8rem; color: #555; padding: 2px 4px; flex: 1; min-width: 120px; background: transparent; }
+  .item-time { font-size: 0.8rem; color: #999; min-width: 46px; flex-shrink: 0; }
+  .item-name { flex: 1; font-size: 0.95rem; }
+  .btn-del { background: none; border: none; color: #ccc; font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
+  .btn-del:hover { color: #e53935; }
+  .cal-item { display: flex; align-items: center; gap: 10px; background: #e8f0fe; padding: 12px 14px; border-radius: 10px; margin-bottom: 6px; border-left: 4px solid #4285f4; }
+  .cal-badge { font-size: 0.65rem; background: #4285f4; color: #fff; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+  .empty { text-align: center; color: #aaa; padding: 30px 0; font-size: 0.95rem; }
+  .reset-row { text-align: center; margin-top: 16px; }
+  .btn-reset { background: none; border: 1px solid #ddd; color: #888; padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; }
+  .btn-reset:hover { border-color: #e53935; color: #e53935; }
+  /* 분석 */
+  .stats-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .stats-card h3 { font-size: 0.9rem; margin-bottom: 10px; color: #333; }
+  .stats-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.85rem; border-bottom: 1px solid #f0f0f0; }
+  .stats-row:last-child { border: none; }
+  .stats-val { font-weight: 600; }
+  .stats-val.good { color: #4caf50; }
+  .stats-val.warn { color: #ff9800; }
+  .stats-val.bad { color: #e53935; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin: 10px 0; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .bar-fill { width: 100%; border-radius: 3px 3px 0 0; background: #4caf50; min-height: 2px; transition: height 0.3s; }
+  .bar-label { font-size: 0.6rem; color: #999; }
+  .bar-pct { font-size: 0.6rem; color: #555; font-weight: 600; }
+  .streak { text-align: center; font-size: 2rem; margin: 8px 0; }
+  .streak-label { text-align: center; font-size: 0.8rem; color: #888; }
+  .best-worst { display: flex; gap: 8px; margin-top: 8px; }
+  .best-worst > div { flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px; font-size: 0.8rem; }
+  .best-worst .label { font-size: 0.7rem; color: #999; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🌅 나의 하루</h1>
+  <div class="date" id="today"></div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('daily')">📋 오늘</div>
+    <div class="tab" onclick="showTab('yesterday')">⏪ 어제</div>
+    <div class="tab" onclick="showTab('weekly')">📊 주간</div>
+    <div class="tab" onclick="showTab('monthly')">📅 월별</div>
+    <div class="tab" onclick="showTab('quarter')">📈 분기</div>
+  </div>
+
+  <div id="dailyView">
+    <div class="progress"><div class="progress-bar" id="bar"></div></div>
+    <div class="progress-text" id="pct"></div>
+    <div style="text-align:center;margin-bottom:12px">
+      <button id="syncBtn" onclick="loadFromCloud().then(ok=>{if(ok){routines=loadRoutines();missions=loadArr(KEY_MSN,defaultMissions);evening=loadEvening();render();}document.getElementById('syncStatus').textContent=ok?'☁️ 클라우드에서 로드됨':'⚠️ 데이터 없음';})" style="font-size:0.75rem;padding:4px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#888;cursor:pointer">☁️ 클라우드 동기화</button>
+      <span id="syncStatus" style="font-size:0.7rem;color:#aaa;margin-left:6px"></span>
+    </div>
+
+    <div class="section-title"><span class="icon">✏️</span> 루틴 추가</div>
+    <div class="add-form">
+      <input type="time" id="inputTime" value="07:00">
+      <input type="text" id="inputName" placeholder="루틴 입력" onkeydown="if(event.key==='Enter')add()">
+      <button onclick="add()">+</button>
+    </div>
+
+    <div class="section-title"><span class="icon">☀️</span> 아침 루틴
+      <select id="modeSelect" onchange="switchMode(this.value)" style="margin-left:auto;font-size:0.8rem;padding:3px 8px;border:1px solid #ddd;border-radius:6px;color:#555;">
+        <option value="normal">🏠 일반</option>
+        <option value="travel">✈️ 여행/출장</option>
+      </select>
+    </div>
+    <div id="routineList"></div>
+
+    <div class="section-title"><span class="icon">📅</span> 오늘의 일정 (Outlook)</div>
+    <div id="calendarList"></div>
+
+    <div class="section-title"><span class="icon">🎯</span> 오늘의 미션</div>
+    <div id="missionList"></div>
+
+    <div class="section-title"><span class="icon">🌙</span> 저녁 루틴
+      <select id="eveMode" onchange="switchEveMode(this.value)" style="margin-left:auto;font-size:0.8rem;padding:3px 8px;border:1px solid #ddd;border-radius:6px;color:#555;">
+        <option value="workout">🏋️ 운동 있는 날</option>
+        <option value="rest">🛋️ 운동 없는 날</option>
+      </select>
+    </div>
+    <div id="eveningList"></div>
+
+    <div class="reset-row">
+    <button class="btn-reset" onclick="resetChecks()">✓ 체크 초기화</button>
+    <button class="btn-reset" onclick="if(confirm('모든 루틴을 기본값으로 복원합니다. 진행할까요?')){[KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_EVE+'_workout',KEY_EVE+'_rest'].forEach(k=>localStorage.removeItem(k));location.reload();}">🔄 기본값 복원</button>
+  </div>
+  </div>
+
+  <div id="weeklyView" style="display:none"></div>
+  <div id="monthlyView" style="display:none"></div>
+  <div id="yesterdayView" style="display:none"></div>
+  <div id="quarterView" style="display:none"></div>
+</div>
+<script>
+const KEY='my_routines',KEY_DATE='my_routines_date',KEY_MODE='my_routine_mode',KEY_MSN='my_missions',KEY_EVE='my_evening',KEY_HIST='my_history';
+
+const defaultNormal=[
+  {id:'d1',time:'06:00',name:'기상',done:false},
+  {id:'d2',time:'06:00',name:'칫솔질 + 따뜻한 레몬물',done:false},
+  {id:'d3',time:'06:05',name:'🧘‍♀️ 명상 10분',done:false,note:'오늘의 태도 1문장'},
+  {id:'d3b',time:'06:15',name:'💬 확언',done:false,note:'오늘의 확언 문장'},
+  {id:'d4',time:'06:15',name:'🚶‍♀️ 산책 20분 (햇빛 보기 / 영어 듣기)',done:false},
+  {id:'d5',time:'06:35',name:'🚿 샤워 + 영양제',done:false},
+  {id:'d6',time:'06:50',name:'📖 독서 15분',done:false,note:'오늘 얻은 핵심 1문장'},
+  {id:'d7',time:'07:05',name:'☕ 커피 + ✍️ 생각쓰기 10분',done:false,note:'오늘 가장 중요한 1개 / 걱정 1개 정리'},
+  {id:'d8',time:'07:15',name:'🇬🇧 영어 말하기 10분',done:false,note:'오늘 사용할 문장 1개'},
+];
+const defaultTravel=[
+  {id:'t1',time:'06:30',name:'기상',done:false},
+  {id:'t2',time:'06:30',name:'칫솔질 + 물 한 잔',done:false},
+  {id:'t3',time:'06:35',name:'🧘‍♀️ 명상 5분',done:false,note:'오늘의 태도 1문장'},
+  {id:'t4',time:'06:40',name:'🚿 샤워 + 영양제',done:false},
+  {id:'t5',time:'06:50',name:'☕ 커피 + ✍️ 오늘 핵심 목표 정리',done:false,note:'오늘 가장 중요한 1개'},
+  {id:'t6',time:'07:00',name:'🇬🇧 영어 5분 (이동 중 듣기)',done:false},
+];
+const defaults={normal:defaultNormal,travel:defaultTravel};
+const defaultMissions=[
+  {id:'m0a',name:'🎯 방향: 오늘 나는 무엇을 만들 것인가?',done:false,note:'성과 / 관계 / 기회 중 하나'},
+  {id:'m0b',name:'⚡ 우선순위: 이것을 안 하면 오늘은 실패다?',done:false,note:'구체적으로'},
+  {id:'m2',name:'오늘 영향 줄 사람 1명',done:false,note:'누구에게, 어떻게'},
+  {id:'m3',name:'회의/미팅에서 "의도적 발언 1회"',done:false},
+];
+const defaultEveWorkout=[
+  {id:'e1',time:'19:30',name:'🏋️ 회사 헬스 30~40분',done:false},
+  {id:'e4',time:'21:30',name:'🧘‍♀️ 집에서 명상 20분 ⭐',done:false},
+  {id:'e5',time:'22:00',name:'✍️ 하루 정리',done:false,note:'잘한 것 1개 / 아쉬운 것 1개 / 내일 목표 1개'},
+  {id:'e6',time:'22:10',name:'🇬🇧 영어 듣기 or 📖 독서 (택1, 10~15분)',done:false},
+];
+const defaultEveRest=[
+  {id:'r1',time:'19:30',name:'🚶‍♀️ 가벼운 산책 20분 또는 스트레칭',done:false},
+  {id:'r2',time:'21:30',name:'🧘‍♀️ 집에서 명상 20분 ⭐',done:false},
+  {id:'r3',time:'22:00',name:'✍️ 하루 정리',done:false,note:'잘한 것 1개 / 아쉬운 것 1개 / 내일 목표 1개'},
+  {id:'r4',time:'22:10',name:'🇬🇧 영어 듣기 or 📖 독서 (택1, 10~15분)',done:false},
+];
+const eveDefaults={workout:defaultEveWorkout,rest:defaultEveRest};
+
+// --- Google Sheets 동기화 ---
+// 배포 후 아래 URL을 교체하세요
+const SYNC_URL='https://script.google.com/macros/s/AKfycbzfaHqnVkt-f2USrHz0Y-tLD--12K8kus9KqngorWjiyflDRc4Yes4Dd-aW2S8veId0SQ/exec';
+const SYNC_TOKEN='f681e42c202ef59f7d2de17ab63bf27a5542636494c01d89';
+let syncReady=!!SYNC_URL&&!SYNC_URL.includes('YOUR_');
+
+async function loadFromCloud(){
+  if(!syncReady)return;
+  try{
+    const r=await fetch(SYNC_URL+'?token='+SYNC_TOKEN);
+    const text=await r.text();
+    if(text&&text!=='unauthorized'&&text!=='{}'){
+      const data=JSON.parse(text);
+      Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v)));
+      return true;
+    }
+  }catch(e){console.log('클라우드 로드 실패',e);}
+  return false;
+}
+
+let syncTimer=null;
+function syncToCloud(){
+  if(!syncReady)return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(async()=>{
+    try{
+      const data={};
+      [KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_EVE+'_workout',KEY_EVE+'_rest',KEY_HIST,KEY_DATE,KEY_MODE,'my_eve_mode'].forEach(k=>{
+        const v=localStorage.getItem(k);
+        if(v)try{data[k]=JSON.parse(v);}catch{data[k]=v;}
+      });
+      await fetch(SYNC_URL+'?token='+SYNC_TOKEN,{method:'POST',body:JSON.stringify(data)});
+      document.getElementById('syncStatus').textContent='☁️ 동기화됨 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){document.getElementById('syncStatus').textContent='⚠️ 동기화 실패';}
+  },1000); // 1초 디바운스
+}
+
+let mode=localStorage.getItem(KEY_MODE)||'normal';
+const VER_KEY='my_version', CUR_VER='16';
+if(localStorage.getItem(VER_KEY)!==CUR_VER){
+  [KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_EVE+'_workout',KEY_EVE+'_rest'].forEach(k=>localStorage.removeItem(k));
+  localStorage.setItem(VER_KEY,CUR_VER);
+}
+function loadArr(k,def){let s=localStorage.getItem(k);return(s&&JSON.parse(s).length)?JSON.parse(s):JSON.parse(JSON.stringify(def));}
+function loadRoutines(){return loadArr(KEY+'_'+mode,defaults[mode]);}
+let eveMode=localStorage.getItem('my_eve_mode')||'workout';
+function loadEvening(){return loadArr(KEY_EVE+'_'+eveMode,eveDefaults[eveMode]);}
+let routines=loadRoutines();
+let missions=loadArr(KEY_MSN,defaultMissions);
+let evening=loadEvening();
+
+function save(){localStorage.setItem(KEY+'_'+mode,JSON.stringify(routines));syncToCloud();}
+function saveMissions(){localStorage.setItem(KEY_MSN,JSON.stringify(missions));syncToCloud();}
+function saveEvening(){localStorage.setItem(KEY_EVE+'_'+eveMode,JSON.stringify(evening));syncToCloud();}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+const now=new Date();
+const todayStr=now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+document.getElementById('today').textContent=todayStr;
+const todayKey=now.toISOString().slice(0,10);
+
+// 날짜 변경 시: 어제 기록 저장 후 리셋
+if(localStorage.getItem(KEY_DATE)!==todayKey){
+  saveHistory(); // 이전 날짜 기록 저장
+  routines.forEach(r=>r.done=false);
+  evening.forEach(r=>r.done=false);
+  missions.forEach(r=>{r.done=false;r.noteVal='';});
+  localStorage.setItem(KEY_DATE,todayKey);
+  save();saveEvening();saveMissions();
+}
+
+// --- 히스토리 ---
+function getHistory(){return JSON.parse(localStorage.getItem(KEY_HIST)||'{}');}
+function saveHistory(){
+  const prev=localStorage.getItem(KEY_DATE);
+  if(!prev)return;
+  const h=getHistory();
+  const allItems=[...routines,...evening,...missions];
+  const done=allItems.filter(r=>r.done).length, total=allItems.length;
+  const details={};
+  allItems.forEach(r=>{details[r.name||r.id]={done:!!r.done};});
+  h[prev]={pct:total?Math.round(done/total*100):0,done,total,details,notes:collectNotes()};
+  localStorage.setItem(KEY_HIST,JSON.stringify(h));syncToCloud();
+}
+function collectNotes(){
+  const n={};
+  [...routines,...evening,...missions].forEach(r=>{if(r.noteVal)n[r.name]=r.noteVal;});
+  return n;
+}
+// 실시간 저장 (체크할 때마다)
+function saveToday(){
+  const h=getHistory();
+  const allItems=[...routines,...evening,...missions];
+  const done=allItems.filter(r=>r.done).length,total=allItems.length;
+  const details={};
+  allItems.forEach(r=>{details[r.name||r.id]={done:!!r.done};});
+  h[todayKey]={pct:total?Math.round(done/total*100):0,done,total,details,notes:collectNotes()};
+  localStorage.setItem(KEY_HIST,JSON.stringify(h));syncToCloud();
+}
+
+const calendarEvents=[
+  {allDay:false,time:"20:00",endTime:"21:00",subject:"지방정부시대 사업 발굴 협의"},
+  {allDay:false,time:"20:00",endTime:"22:00",subject:"김주환"}
+];
+
+// --- 탭 ---
+function showTab(t){
+  const tabs=['daily','yesterday','weekly','monthly','quarter'];
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',tabs[i]===t));
+  tabs.forEach(id=>{document.getElementById(id+'View').style.display=id===t?'':'none';});
+  if(t==='weekly')renderWeekly();
+  if(t==='monthly')renderMonthly();
+  if(t==='yesterday')renderYesterday();
+  if(t==='quarter')renderQuarter();
+}
+
+// --- 렌더 ---
+function renderItems(arr,elId,toggleFn,noteFn,showTime=true,showDel=false){
+  const sorted=arr.slice().sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  let html='';
+  sorted.forEach(r=>{
+    const noteHtml=r.note?`<div class="item-note">→ ${esc(r.note)}: <input class="note-input" placeholder="기록하기" data-id="${r.id}" value="${esc(r.noteVal||'')}" onchange="${noteFn}(this)"></div>`:'';
+    html+=`<div class="item${r.done?' done':''}"><div style="display:flex;align-items:center;gap:10px;width:100%">
+      <input type="checkbox" ${r.done?'checked':''} onchange="${toggleFn}('${r.id}')">
+      ${showTime?`<span class="item-time">${r.time||''}</span>`:''}
+      <span class="item-name">${esc(r.name)}</span>
+      ${showDel?`<button class="btn-del" onclick="del('${r.id}')" aria-label="삭제">×</button>`:''}
+    </div>${noteHtml}</div>`;
+  });
+  document.getElementById(elId).innerHTML=html||'<div class="empty">항목 없음</div>';
+}
+
+function render(){
+  renderItems(routines,'routineList','toggle','saveNote',true,true);
+  renderItems(missions,'missionList','toggleMsn','saveNoteMsn',false);
+  renderItems(evening,'eveningList','toggleEve','saveNoteEve',true);
+  // 캘린더
+  let cHtml='';
+  if(!calendarEvents.length)cHtml='<div class="empty">오늘 일정이 없습니다</div>';
+  else calendarEvents.filter(e=>!e.allDay).sort((a,b)=>a.time.localeCompare(b.time)).forEach(e=>{
+    cHtml+=`<div class="cal-item"><span class="cal-badge">일정</span><span class="item-time">${e.time}~${e.endTime||''}</span><span class="item-name">${esc(e.subject)}</span></div>`;
+  });
+  document.getElementById('calendarList').innerHTML=cHtml;
+  // 프로그레스
+  const done=routines.filter(r=>r.done).length+evening.filter(r=>r.done).length+missions.filter(r=>r.done).length;
+  const total=routines.length+evening.length+missions.length;
+  const pctVal=total?Math.round(done/total*100):0;
+  document.getElementById('bar').style.width=pctVal+'%';
+  document.getElementById('pct').textContent=total?`루틴 ${done}/${total} 완료 (${pctVal}%)`:'';
+  saveToday();
+}
+
+function add(){const t=document.getElementById('inputTime').value,n=document.getElementById('inputName').value.trim();if(!n)return;routines.push({id:Date.now().toString(36),time:t,name:n,done:false});document.getElementById('inputName').value='';save();render();}
+function toggle(id){const r=routines.find(r=>r.id===id);if(r)r.done=!r.done;save();render();}
+function del(id){routines=routines.filter(r=>r.id!==id);save();render();}
+function toggleMsn(id){const r=missions.find(r=>r.id===id);if(r)r.done=!r.done;saveMissions();render();}
+function toggleEve(id){const r=evening.find(r=>r.id===id);if(r)r.done=!r.done;saveEvening();render();}
+function saveNote(el){const r=routines.find(r=>r.id===el.dataset.id);if(r){r.noteVal=el.value;save();saveToday();}}
+function saveNoteMsn(el){const r=missions.find(r=>r.id===el.dataset.id);if(r){r.noteVal=el.value;saveMissions();saveToday();}}
+function saveNoteEve(el){const r=evening.find(r=>r.id===el.dataset.id);if(r){r.noteVal=el.value;saveEvening();saveToday();}}
+function resetChecks(){routines.forEach(r=>r.done=false);evening.forEach(r=>r.done=false);missions.forEach(r=>r.done=false);save();saveEvening();saveMissions();render();}
+function switchMode(m){mode=m;localStorage.setItem(KEY_MODE,m);routines=loadRoutines();save();render();}
+function switchEveMode(m){eveMode=m;localStorage.setItem('my_eve_mode',m);evening=loadEvening();saveEvening();render();}
+
+// --- 분석 유틸 ---
+function getDays(n){
+  const h=getHistory(),days=[];
+  for(let i=n-1;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);
+    const k=d.toISOString().slice(0,10);
+    days.push({date:k,day:d.toLocaleDateString('ko-KR',{weekday:'short'}),data:h[k]||null});
+  }
+  return days;
+}
+function pctColor(p){return p>=80?'good':p>=50?'warn':'bad';}
+function calcStreak(days){let s=0;for(let i=days.length-1;i>=0;i--){if(days[i].data&&days[i].data.pct>=70)s++;else break;}return s;}
+
+function renderAnalysis(days,elId,label){
+  const el=document.getElementById(elId);
+  const recorded=days.filter(d=>d.data);
+  if(!recorded.length){el.innerHTML=`<div class="empty">아직 기록이 없습니다.<br>매일 루틴을 체크하면 여기에 분석이 표시됩니다 📊</div>`;return;}
+
+  const avgPct=Math.round(recorded.reduce((s,d)=>s+d.data.pct,0)/recorded.length);
+  const maxDay=recorded.reduce((a,b)=>a.data.pct>=b.data.pct?a:b);
+  const minDay=recorded.reduce((a,b)=>a.data.pct<=b.data.pct?a:b);
+  const streak=calcStreak(days);
+  const perfectDays=recorded.filter(d=>d.data.pct===100).length;
+
+  // 항목별 달성률
+  const itemStats={};
+  recorded.forEach(d=>{
+    if(!d.data.details)return;
+    Object.entries(d.data.details).forEach(([name,v])=>{
+      if(!itemStats[name])itemStats[name]={done:0,total:0};
+      itemStats[name].total++;
+      if(v.done)itemStats[name].done++;
+    });
+  });
+  const itemArr=Object.entries(itemStats).map(([name,v])=>({name,pct:Math.round(v.done/v.total*100)})).sort((a,b)=>b.pct-a.pct);
+  const best3=itemArr.slice(0,3);
+  const worst3=itemArr.slice(-3).reverse();
+
+  let html=`
+  <div class="stats-card">
+    <h3>📊 ${label} 요약 (${recorded.length}일 기록)</h3>
+    <div class="streak">${streak>0?'🔥'.repeat(Math.min(streak,7)):'💤'}</div>
+    <div class="streak-label">${streak>0?`연속 ${streak}일 달성 중!`:'연속 달성 기록을 만들어 보세요'}</div>
+    <div class="stats-row"><span>평균 달성률</span><span class="stats-val ${pctColor(avgPct)}">${avgPct}%</span></div>
+    <div class="stats-row"><span>100% 달성일</span><span class="stats-val">${perfectDays}일</span></div>
+    <div class="stats-row"><span>최고의 날</span><span class="stats-val good">${maxDay.date.slice(5)} (${maxDay.data.pct}%)</span></div>
+    <div class="stats-row"><span>아쉬운 날</span><span class="stats-val warn">${minDay.date.slice(5)} (${minDay.data.pct}%)</span></div>
+  </div>
+  <div class="stats-card">
+    <h3>📈 일별 달성률</h3>
+    <div class="bar-chart">${days.map(d=>`
+      <div class="bar-col">
+        <div class="bar-pct">${d.data?d.data.pct+'%':'-'}</div>
+        <div class="bar-fill" style="height:${d.data?Math.max(d.data.pct*0.7,2):2}px;${d.data?'':'background:#e0e0e0'}"></div>
+        <div class="bar-label">${d.date.slice(5)}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  if(itemArr.length){
+    html+=`<div class="stats-card"><h3>🏆 항목별 달성률</h3>
+    <div class="best-worst">
+      <div><div class="label">✅ 잘하는 루틴</div>${best3.map(i=>`<div class="stats-row"><span style="font-size:0.8rem">${esc(i.name.slice(0,15))}</span><span class="stats-val good">${i.pct}%</span></div>`).join('')}</div>
+      <div><div class="label">⚠️ 보완할 루틴</div>${worst3.map(i=>`<div class="stats-row"><span style="font-size:0.8rem">${esc(i.name.slice(0,15))}</span><span class="stats-val warn">${i.pct}%</span></div>`).join('')}</div>
+    </div></div>`;
+  }
+  el.innerHTML=html;
+}
+
+function renderWeekly(){renderAnalysis(getDays(7),'weeklyView','주간');}
+
+function renderMonthly(){
+  const h=getHistory();
+  const allDates=Object.keys(h).sort();
+  if(!allDates.length){document.getElementById('monthlyView').innerHTML='<div class="empty">아직 기록이 없습니다 📊</div>';return;}
+
+  // 사용 가능한 월 목록
+  const months=[...new Set(allDates.map(d=>d.slice(0,7)))].sort().reverse();
+  const sel=document.getElementById('monthSelect');
+  const curMonth=sel?sel.value:months[0];
+
+  // 해당 월의 일수 계산
+  const [y,m]=curMonth.split('-').map(Number);
+  const daysInMonth=new Date(y,m,0).getDate();
+  const days=[];
+  for(let i=1;i<=daysInMonth;i++){
+    const k=`${curMonth}-${String(i).padStart(2,'0')}`;
+    const d=new Date(y,m-1,i);
+    days.push({date:k,day:d.toLocaleDateString('ko-KR',{weekday:'short'}),data:h[k]||null});
+  }
+
+  const monthLabel=`${y}년 ${m}월`;
+  let optionsHtml=months.map(mo=>`<option value="${mo}" ${mo===curMonth?'selected':''}>${mo.replace('-','년 ')}월</option>`).join('');
+
+  // 분석 생성
+  const recorded=days.filter(d=>d.data);
+  let html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <select id="monthSelect" onchange="renderMonthly()" style="font-size:0.85rem;padding:6px 10px;border:1px solid #ddd;border-radius:8px;">${optionsHtml}</select>
+    <span style="font-size:0.8rem;color:#888">${recorded.length}일 기록</span>
+  </div>`;
+
+  if(!recorded.length){html+='<div class="empty">이 달의 기록이 없습니다</div>';document.getElementById('monthlyView').innerHTML=html;return;}
+
+  const avgPct=Math.round(recorded.reduce((s,d)=>s+d.data.pct,0)/recorded.length);
+  const perfectDays=recorded.filter(d=>d.data.pct===100).length;
+  const maxDay=recorded.reduce((a,b)=>a.data.pct>=b.data.pct?a:b);
+  const minDay=recorded.reduce((a,b)=>a.data.pct<=b.data.pct?a:b);
+  const streak=calcStreak(days);
+
+  html+=`<div class="stats-card">
+    <h3>📅 ${monthLabel} 요약</h3>
+    <div class="streak">${streak>0?'🔥'.repeat(Math.min(streak,7)):'💤'}</div>
+    <div class="streak-label">${streak>0?`연속 ${streak}일 달성!`:'연속 달성 기록을 만들어 보세요'}</div>
+    <div class="stats-row"><span>평균 달성률</span><span class="stats-val ${pctColor(avgPct)}">${avgPct}%</span></div>
+    <div class="stats-row"><span>기록일 / 전체</span><span class="stats-val">${recorded.length} / ${daysInMonth}일</span></div>
+    <div class="stats-row"><span>100% 달성일</span><span class="stats-val">${perfectDays}일</span></div>
+    <div class="stats-row"><span>최고의 날</span><span class="stats-val good">${maxDay.date.slice(5)} (${maxDay.data.pct}%)</span></div>
+    <div class="stats-row"><span>아쉬운 날</span><span class="stats-val warn">${minDay.date.slice(5)} (${minDay.data.pct}%)</span></div>
+  </div>`;
+
+  // 주차별 바 차트
+  const weeks=[];
+  for(let i=0;i<days.length;i+=7) weeks.push(days.slice(i,i+7));
+  html+=`<div class="stats-card"><h3>📈 주차별 추이</h3>`;
+  weeks.forEach((wk,wi)=>{
+    const wr=wk.filter(d=>d.data);
+    const wa=wr.length?Math.round(wr.reduce((s,d)=>s+d.data.pct,0)/wr.length):0;
+    html+=`<div class="stats-row"><span>${wi+1}주차 (${wk[0].date.slice(8)}~${wk[wk.length-1].date.slice(8)}일)</span><span class="stats-val ${pctColor(wa)}">${wr.length?wa+'%':'-'}</span></div>`;
+  });
+  html+=`</div>`;
+
+  // 일별 차트
+  html+=`<div class="stats-card"><h3>📊 일별 달성률</h3><div class="bar-chart">${days.map(d=>`
+    <div class="bar-col">
+      <div class="bar-pct" style="font-size:0.5rem">${d.data?d.data.pct:''}</div>
+      <div class="bar-fill" style="height:${d.data?Math.max(d.data.pct*0.7,2):2}px;${d.data?'':'background:#e0e0e0'}"></div>
+      <div class="bar-label">${d.date.slice(8)}</div>
+    </div>`).join('')}</div></div>`;
+
+  // 항목별
+  const itemStats={};
+  recorded.forEach(d=>{if(!d.data.details)return;Object.entries(d.data.details).forEach(([name,v])=>{if(!itemStats[name])itemStats[name]={done:0,total:0};itemStats[name].total++;if(v.done)itemStats[name].done++;});});
+  const itemArr=Object.entries(itemStats).map(([name,v])=>({name,pct:Math.round(v.done/v.total*100)})).sort((a,b)=>b.pct-a.pct);
+  if(itemArr.length){
+    const best3=itemArr.slice(0,3),worst3=itemArr.slice(-3).reverse();
+    html+=`<div class="stats-card"><h3>🏆 항목별 달성률</h3><div class="best-worst">
+      <div><div class="label">✅ 잘하는 루틴</div>${best3.map(i=>`<div class="stats-row"><span style="font-size:0.8rem">${esc(i.name.slice(0,15))}</span><span class="stats-val good">${i.pct}%</span></div>`).join('')}</div>
+      <div><div class="label">⚠️ 보완할 루틴</div>${worst3.map(i=>`<div class="stats-row"><span style="font-size:0.8rem">${esc(i.name.slice(0,15))}</span><span class="stats-val warn">${i.pct}%</span></div>`).join('')}</div>
+    </div></div>`;
+  }
+  document.getElementById('monthlyView').innerHTML=html;
+}
+
+function renderQuarter(){
+  const h=getHistory();
+  const allDates=Object.keys(h).sort();
+  if(!allDates.length){document.getElementById('quarterView').innerHTML='<div class="empty">아직 기록이 없습니다 📊</div>';return;}
+
+  // 현재 분기 및 이전 분기 계산
+  const cy=now.getFullYear(),cm=now.getMonth()+1;
+  const cq=Math.ceil(cm/3);
+  const quarters=[];
+  for(let i=0;i<4;i++){
+    let q=cq-i,y=cy;
+    while(q<=0){q+=4;y--;}
+    const sm=(q-1)*3+1;
+    const start=`${y}-${String(sm).padStart(2,'0')}-01`;
+    const em=sm+2;
+    const end=`${y}-${String(em).padStart(2,'0')}-${new Date(y,em,0).getDate()}`;
+    quarters.push({label:`${y}년 Q${q} (${sm}~${em}월)`,y,q,start,end});
+  }
+
+  let html='';
+  quarters.forEach(qr=>{
+    const days=allDates.filter(d=>d>=qr.start&&d<=qr.end).map(d=>({date:d,data:h[d]}));
+    if(!days.length)return;
+
+    const avgPct=Math.round(days.reduce((s,d)=>s+d.data.pct,0)/days.length);
+    const perfectDays=days.filter(d=>d.data.pct===100).length;
+
+    // 월별 평균
+    const monthAvg={};
+    days.forEach(d=>{
+      const mk=d.date.slice(0,7);
+      if(!monthAvg[mk])monthAvg[mk]={sum:0,cnt:0};
+      monthAvg[mk].sum+=d.data.pct;monthAvg[mk].cnt++;
+    });
+
+    html+=`<div class="stats-card">
+      <h3>📈 ${qr.label}</h3>
+      <div class="stats-row"><span>기록일</span><span class="stats-val">${days.length}일</span></div>
+      <div class="stats-row"><span>평균 달성률</span><span class="stats-val ${pctColor(avgPct)}">${avgPct}%</span></div>
+      <div class="stats-row"><span>100% 달성일</span><span class="stats-val">${perfectDays}일</span></div>`;
+
+    Object.entries(monthAvg).sort(([a],[b])=>a.localeCompare(b)).forEach(([mk,v])=>{
+      const ma=Math.round(v.sum/v.cnt);
+      html+=`<div class="stats-row"><span>${mk.replace('-','년 ')}월</span><span class="stats-val ${pctColor(ma)}">${ma}% (${v.cnt}일)</span></div>`;
+    });
+
+    // 월별 추이 바
+    const mKeys=Object.keys(monthAvg).sort();
+    html+=`<div class="bar-chart" style="height:60px;margin-top:8px">${mKeys.map(mk=>{
+      const ma=Math.round(monthAvg[mk].sum/monthAvg[mk].cnt);
+      return `<div class="bar-col"><div class="bar-pct">${ma}%</div><div class="bar-fill" style="height:${Math.max(ma*0.5,2)}px"></div><div class="bar-label">${mk.slice(5)}월</div></div>`;
+    }).join('')}</div>`;
+
+    html+=`</div>`;
+  });
+
+  if(!html)html='<div class="empty">분기 데이터가 없습니다</div>';
+  document.getElementById('quarterView').innerHTML=html;
+}
+
+function renderYesterday(){
+  const yd=new Date(now);yd.setDate(yd.getDate()-1);
+  const yk=yd.toISOString().slice(0,10);
+  const h=getHistory();
+  const data=h[yk];
+  const el=document.getElementById('yesterdayView');
+  const dateStr=yd.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+
+  if(!data){el.innerHTML=`<div class="stats-card"><h3>⏪ ${dateStr}</h3><div class="empty">어제 기록이 없습니다</div></div>`;return;}
+
+  let html=`<div class="stats-card"><h3>⏪ ${dateStr}</h3>
+    <div class="progress" style="margin:12px 0"><div class="progress-bar" style="width:${data.pct}%"></div></div>
+    <div style="text-align:center;font-size:0.85rem;color:#666;font-weight:600;margin-bottom:12px">${data.done}/${data.total} 완료 (${data.pct}%)</div>`;
+
+  if(data.details){
+    const entries=Object.entries(data.details);
+    const doneItems=entries.filter(([,v])=>v.done);
+    const missedItems=entries.filter(([,v])=>!v.done);
+    html+=`<div class="best-worst"><div><div class="label">✅ 완료 (${doneItems.length})</div>`;
+    doneItems.forEach(([name])=>{html+=`<div style="font-size:0.8rem;padding:3px 0;color:#4caf50">✓ ${esc(name)}</div>`;});
+    html+=`</div><div><div class="label">❌ 미완료 (${missedItems.length})</div>`;
+    missedItems.forEach(([name])=>{html+=`<div style="font-size:0.8rem;padding:3px 0;color:#e53935">✗ ${esc(name)}</div>`;});
+    html+=`</div></div>`;
+  }
+  if(data.notes&&Object.keys(data.notes).length){
+    html+=`<div style="margin-top:12px"><div class="label" style="font-size:0.75rem;color:#999;margin-bottom:6px">📝 메모</div>`;
+    Object.entries(data.notes).forEach(([k,v])=>{html+=`<div style="font-size:0.8rem;padding:3px 0"><b>${esc(k)}</b>: ${esc(v)}</div>`;});
+    html+=`</div>`;
+  }
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('modeSelect').value=mode;
+  document.getElementById('eveMode').value=eveMode;
+  // 페이지 로드 시 클라우드에서 데이터 로드
+  if(syncReady)loadFromCloud().then(ok=>{
+    if(ok){routines=loadRoutines();missions=loadArr(KEY_MSN,defaultMissions);evening=loadEvening();render();
+    document.getElementById('syncStatus').textContent='☁️ 동기화됨';}
+  });
+});
+render();
+</script>
+</body>
+</html>
