@@ -95,11 +95,11 @@
     </div>
     <div id="routineList"></div>
 
-    <div class="section-title"><span class="icon">📅</span> 오늘의 일정 (Outlook)</div>
-    <div id="calendarList"></div>
-
     <div class="section-title"><span class="icon">🎯</span> 오늘의 미션</div>
     <div id="missionList"></div>
+
+    <div class="section-title"><span class="icon">📅</span> 오늘의 할 일</div>
+    <div id="todoList"></div>
 
     <div class="section-title"><span class="icon">🌙</span> 저녁 루틴
       <select id="eveMode" onchange="switchEveMode(this.value)" style="margin-left:auto;font-size:0.8rem;padding:3px 8px;border:1px solid #ddd;border-radius:6px;color:#555;">
@@ -111,7 +111,7 @@
 
     <div class="reset-row">
     <button class="btn-reset" onclick="resetChecks()">✓ 체크 초기화</button>
-    <button class="btn-reset" onclick="if(confirm('모든 루틴을 기본값으로 복원합니다. 진행할까요?')){[KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_EVE+'_workout',KEY_EVE+'_rest'].forEach(k=>localStorage.removeItem(k));location.reload();}">🔄 기본값 복원</button>
+    <button class="btn-reset" onclick="if(confirm('모든 루틴을 기본값으로 복원합니다. 진행할까요?')){[KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_TODO,KEY_EVE+'_workout',KEY_EVE+'_rest'].forEach(k=>localStorage.removeItem(k));location.reload();}">🔄 기본값 복원</button>
   </div>
   </div>
 
@@ -121,7 +121,7 @@
   <div id="quarterView" style="display:none"></div>
 </div>
 <script>
-const KEY='my_routines',KEY_DATE='my_routines_date',KEY_MODE='my_routine_mode',KEY_MSN='my_missions',KEY_EVE='my_evening',KEY_HIST='my_history';
+const KEY='my_routines',KEY_DATE='my_routines_date',KEY_MODE='my_routine_mode',KEY_MSN='my_missions',KEY_EVE='my_evening',KEY_HIST='my_history',KEY_TODO='my_todos';
 
 const defaultNormal=[
   {id:'d1',time:'06:00',name:'기상',done:false},
@@ -151,17 +151,21 @@ const defaultMissions=[
 ];
 const defaultEveWorkout=[
   {id:'e1',time:'19:30',name:'🏋️ 회사 헬스 30~40분',done:false},
-  {id:'e4',time:'21:30',name:'🧘‍♀️ 집에서 명상 20분 ⭐',done:false},
+  {id:'e4',time:'21:30',name:'🧘‍♀️ 집에서 명상 20분 ⭐',done:false,note:'명상 기록'},
   {id:'e5',time:'22:00',name:'✍️ 하루 정리',done:false,note:'잘한 것 1개 / 아쉬운 것 1개 / 내일 목표 1개'},
   {id:'e6',time:'22:10',name:'🇬🇧 영어 듣기 or 📖 독서 (택1, 10~15분)',done:false},
 ];
 const defaultEveRest=[
   {id:'r1',time:'19:30',name:'🚶‍♀️ 가벼운 산책 20분 또는 스트레칭',done:false},
-  {id:'r2',time:'21:30',name:'🧘‍♀️ 집에서 명상 20분 ⭐',done:false},
+  {id:'r2',time:'21:30',name:'🧘‍♀️ 집에서 명상 20분 ⭐',done:false,note:'명상 기록'},
   {id:'r3',time:'22:00',name:'✍️ 하루 정리',done:false,note:'잘한 것 1개 / 아쉬운 것 1개 / 내일 목표 1개'},
   {id:'r4',time:'22:10',name:'🇬🇧 영어 듣기 or 📖 독서 (택1, 10~15분)',done:false},
 ];
 const eveDefaults={workout:defaultEveWorkout,rest:defaultEveRest};
+const defaultTodos=[
+  {id:'td1',name:'영수증 처리',done:false,note:'메모'},
+  {id:'td2',name:'Pipeline Hygiene',done:false,note:'메모'},
+];
 
 // --- Google Sheets 동기화 ---
 // 배포 후 아래 URL을 교체하세요
@@ -190,7 +194,7 @@ function syncToCloud(){
   syncTimer=setTimeout(async()=>{
     try{
       const data={};
-      [KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_EVE+'_workout',KEY_EVE+'_rest',KEY_HIST,KEY_DATE,KEY_MODE,'my_eve_mode'].forEach(k=>{
+      [KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_TODO,KEY_EVE+'_workout',KEY_EVE+'_rest',KEY_HIST,KEY_DATE,KEY_MODE,'my_eve_mode'].forEach(k=>{
         const v=localStorage.getItem(k);
         if(v)try{data[k]=JSON.parse(v);}catch{data[k]=v;}
       });
@@ -201,9 +205,9 @@ function syncToCloud(){
 }
 
 let mode=localStorage.getItem(KEY_MODE)||'normal';
-const VER_KEY='my_version', CUR_VER='16';
+const VER_KEY='my_version', CUR_VER='18';
 if(localStorage.getItem(VER_KEY)!==CUR_VER){
-  [KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_EVE+'_workout',KEY_EVE+'_rest'].forEach(k=>localStorage.removeItem(k));
+  [KEY+'_normal',KEY+'_travel',KEY_MSN,KEY_TODO,KEY_EVE+'_workout',KEY_EVE+'_rest'].forEach(k=>localStorage.removeItem(k));
   localStorage.setItem(VER_KEY,CUR_VER);
 }
 function loadArr(k,def){let s=localStorage.getItem(k);return(s&&JSON.parse(s).length)?JSON.parse(s):JSON.parse(JSON.stringify(def));}
@@ -213,10 +217,12 @@ function loadEvening(){return loadArr(KEY_EVE+'_'+eveMode,eveDefaults[eveMode]);
 let routines=loadRoutines();
 let missions=loadArr(KEY_MSN,defaultMissions);
 let evening=loadEvening();
+let todos=loadArr(KEY_TODO,defaultTodos);
 
 function save(){localStorage.setItem(KEY+'_'+mode,JSON.stringify(routines));syncToCloud();}
 function saveMissions(){localStorage.setItem(KEY_MSN,JSON.stringify(missions));syncToCloud();}
 function saveEvening(){localStorage.setItem(KEY_EVE+'_'+eveMode,JSON.stringify(evening));syncToCloud();}
+function saveTodos(){localStorage.setItem(KEY_TODO,JSON.stringify(todos));syncToCloud();}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
 const now=new Date();
@@ -230,8 +236,9 @@ if(localStorage.getItem(KEY_DATE)!==todayKey){
   routines.forEach(r=>r.done=false);
   evening.forEach(r=>r.done=false);
   missions.forEach(r=>{r.done=false;r.noteVal='';});
+  todos.forEach(r=>{r.done=false;r.noteVal='';});
   localStorage.setItem(KEY_DATE,todayKey);
-  save();saveEvening();saveMissions();
+  save();saveEvening();saveMissions();saveTodos();
 }
 
 // --- 히스토리 ---
@@ -240,7 +247,7 @@ function saveHistory(){
   const prev=localStorage.getItem(KEY_DATE);
   if(!prev)return;
   const h=getHistory();
-  const allItems=[...routines,...evening,...missions];
+  const allItems=[...routines,...evening,...missions,...todos];
   const done=allItems.filter(r=>r.done).length, total=allItems.length;
   const details={};
   allItems.forEach(r=>{details[r.name||r.id]={done:!!r.done};});
@@ -249,24 +256,19 @@ function saveHistory(){
 }
 function collectNotes(){
   const n={};
-  [...routines,...evening,...missions].forEach(r=>{if(r.noteVal)n[r.name]=r.noteVal;});
+  [...routines,...evening,...missions,...todos].forEach(r=>{if(r.noteVal)n[r.name]=r.noteVal;});
   return n;
 }
 // 실시간 저장 (체크할 때마다)
 function saveToday(){
   const h=getHistory();
-  const allItems=[...routines,...evening,...missions];
+  const allItems=[...routines,...evening,...missions,...todos];
   const done=allItems.filter(r=>r.done).length,total=allItems.length;
   const details={};
   allItems.forEach(r=>{details[r.name||r.id]={done:!!r.done};});
   h[todayKey]={pct:total?Math.round(done/total*100):0,done,total,details,notes:collectNotes()};
   localStorage.setItem(KEY_HIST,JSON.stringify(h));syncToCloud();
 }
-
-const calendarEvents=[
-  {allDay:false,time:"20:00",endTime:"21:00",subject:"지방정부시대 사업 발굴 협의"},
-  {allDay:false,time:"20:00",endTime:"22:00",subject:"김주환"}
-];
 
 // --- 탭 ---
 function showTab(t){
@@ -299,16 +301,10 @@ function render(){
   renderItems(routines,'routineList','toggle','saveNote',true,true);
   renderItems(missions,'missionList','toggleMsn','saveNoteMsn',false);
   renderItems(evening,'eveningList','toggleEve','saveNoteEve',true);
-  // 캘린더
-  let cHtml='';
-  if(!calendarEvents.length)cHtml='<div class="empty">오늘 일정이 없습니다</div>';
-  else calendarEvents.filter(e=>!e.allDay).sort((a,b)=>a.time.localeCompare(b.time)).forEach(e=>{
-    cHtml+=`<div class="cal-item"><span class="cal-badge">일정</span><span class="item-time">${e.time}~${e.endTime||''}</span><span class="item-name">${esc(e.subject)}</span></div>`;
-  });
-  document.getElementById('calendarList').innerHTML=cHtml;
+  renderItems(todos,'todoList','toggleTodo','saveNoteTodo',false);
   // 프로그레스
-  const done=routines.filter(r=>r.done).length+evening.filter(r=>r.done).length+missions.filter(r=>r.done).length;
-  const total=routines.length+evening.length+missions.length;
+  const done=routines.filter(r=>r.done).length+evening.filter(r=>r.done).length+missions.filter(r=>r.done).length+todos.filter(r=>r.done).length;
+  const total=routines.length+evening.length+missions.length+todos.length;
   const pctVal=total?Math.round(done/total*100):0;
   document.getElementById('bar').style.width=pctVal+'%';
   document.getElementById('pct').textContent=total?`루틴 ${done}/${total} 완료 (${pctVal}%)`:'';
@@ -320,10 +316,12 @@ function toggle(id){const r=routines.find(r=>r.id===id);if(r)r.done=!r.done;save
 function del(id){routines=routines.filter(r=>r.id!==id);save();render();}
 function toggleMsn(id){const r=missions.find(r=>r.id===id);if(r)r.done=!r.done;saveMissions();render();}
 function toggleEve(id){const r=evening.find(r=>r.id===id);if(r)r.done=!r.done;saveEvening();render();}
+function toggleTodo(id){const r=todos.find(r=>r.id===id);if(r)r.done=!r.done;saveTodos();render();}
 function saveNote(el){const r=routines.find(r=>r.id===el.dataset.id);if(r){r.noteVal=el.value;save();saveToday();}}
 function saveNoteMsn(el){const r=missions.find(r=>r.id===el.dataset.id);if(r){r.noteVal=el.value;saveMissions();saveToday();}}
 function saveNoteEve(el){const r=evening.find(r=>r.id===el.dataset.id);if(r){r.noteVal=el.value;saveEvening();saveToday();}}
-function resetChecks(){routines.forEach(r=>r.done=false);evening.forEach(r=>r.done=false);missions.forEach(r=>r.done=false);save();saveEvening();saveMissions();render();}
+function saveNoteTodo(el){const r=todos.find(r=>r.id===el.dataset.id);if(r){r.noteVal=el.value;saveTodos();saveToday();}}
+function resetChecks(){routines.forEach(r=>r.done=false);evening.forEach(r=>r.done=false);missions.forEach(r=>r.done=false);todos.forEach(r=>r.done=false);save();saveEvening();saveMissions();saveTodos();render();}
 function switchMode(m){mode=m;localStorage.setItem(KEY_MODE,m);routines=loadRoutines();save();render();}
 function switchEveMode(m){eveMode=m;localStorage.setItem('my_eve_mode',m);evening=loadEvening();saveEvening();render();}
 
@@ -578,7 +576,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('eveMode').value=eveMode;
   // 페이지 로드 시 클라우드에서 데이터 로드
   if(syncReady)loadFromCloud().then(ok=>{
-    if(ok){routines=loadRoutines();missions=loadArr(KEY_MSN,defaultMissions);evening=loadEvening();render();
+    if(ok){routines=loadRoutines();missions=loadArr(KEY_MSN,defaultMissions);evening=loadEvening();todos=loadArr(KEY_TODO,defaultTodos);
+    if(localStorage.getItem(KEY_DATE)!==todayKey){
+      saveHistory();
+      routines.forEach(r=>r.done=false);evening.forEach(r=>r.done=false);missions.forEach(r=>{r.done=false;r.noteVal='';});todos.forEach(r=>{r.done=false;r.noteVal='';});
+      localStorage.setItem(KEY_DATE,todayKey);save();saveEvening();saveMissions();saveTodos();
+    }
+    render();
     document.getElementById('syncStatus').textContent='☁️ 동기화됨';}
   });
 });
